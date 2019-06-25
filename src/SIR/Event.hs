@@ -17,11 +17,9 @@ import SIR.Model
 
 --import Debug.Trace
 
-type EventId      = Integer
 type Time         = Double
 type AgentId      = Int
-newtype Event e   = Event e deriving Show
-data QueueItem e  = QueueItem !AgentId !(Event e) Time deriving Show
+data QueueItem e  = QueueItem e !AgentId !Time deriving Show
 type EventQueue e = PQ.MinQueue (QueueItem e)
 
 instance Eq (QueueItem e) where
@@ -31,9 +29,9 @@ instance Ord (QueueItem e) where
   compare (QueueItem _ _ t1) (QueueItem _ _ t2) = compare t1 t2
 
 type ABSMonad m e    = ReaderT Time (WriterT [QueueItem e] (ReaderT [AgentId] m))
-type AgentCont m e o = MSF (ABSMonad m e) e o
-type Agent m e o     = AgentId -> (ABSMonad m e) (AgentCont m e o)
-type AgentMap m e o  = Map.IntMap (AgentCont m e o, o)
+type AgentMSF m e o = MSF (ABSMonad m e) e o
+type Agent m e o     = AgentId -> (ABSMonad m e) (AgentMSF m e o)
+type AgentMap m e o  = Map.IntMap (AgentMSF m e o, o)
 
 data SIREvent 
   = MakeContact
@@ -44,7 +42,7 @@ data SIREvent
 type SIRMonad g     = Rand g
 type SIRMonadT g    = ABSMonad (SIRMonad g) SIREvent
 type SIRAgent g     = Agent (SIRMonad g) SIREvent SIRState
-type SIRAgentCont g = AgentCont (SIRMonad g) SIREvent SIRState
+type SIRAgentMSF g = AgentMSF (SIRMonad g) SIREvent SIRState
 type SIRAgentMap g  = AgentMap (SIRMonad g) SIREvent SIRState
 
 makeContactInterval :: Double
@@ -79,7 +77,7 @@ susceptibleAgent :: RandomGen g
                  -> Int
                  -> Double
                  -> Double
-                 -> SIRAgentCont g
+                 -> SIRAgentMSF g
 susceptibleAgent aid cor inf ild = 
     switch
       susceptibleAgentInfected
@@ -98,7 +96,7 @@ susceptibleAgent aid cor inf ild =
 
     handleEvent :: RandomGen g => SIREvent -> (SIRMonadT g) (Maybe ())
     handleEvent (Contact _ Infected) = do
-      r <- lift $ lift $ lift $ randomBoolM inf
+      r <- (lift . lift . lift) (randomBoolM inf)
       if r 
         then do
           scheduleRecovery aid ild
@@ -119,7 +117,7 @@ susceptibleAgent aid cor inf ild =
     makeContactWith receiver = 
       scheduleEvent receiver (Contact aid Susceptible) 0.0
 
-infectedAgent :: AgentId -> SIRAgentCont g
+infectedAgent :: AgentId -> SIRAgentMSF g
 infectedAgent aid = 
     switch 
       infectedAgentRecovered 
@@ -145,7 +143,7 @@ infectedAgent aid =
     replyContact :: AgentId -> (SIRMonadT g) ()
     replyContact receiver = scheduleEvent receiver (Contact aid Infected) 0.0
 
-recoveredAgent :: SIRAgentCont g
+recoveredAgent :: SIRAgentMSF g
 recoveredAgent = arr (const Recovered)
 
 --------------------------------------------------------------------------------
@@ -169,7 +167,7 @@ scheduleEvent :: Monad m
               -> (ABSMonad m e) ()
 scheduleEvent aid e dt = do
   t <- ask
-  let qe = QueueItem aid (Event e) (t + dt)  
+  let qe = QueueItem e aid (t + dt)  
   lift $ tell [qe]
 
 --------------------------------------------------------------------------------
@@ -221,8 +219,8 @@ processEvent :: Monad m
              -> QueueItem e
              -> ReaderT [AgentId] m
                         -- no idea why have to use full expansion of AgentMap here...
-                        (Maybe (Map.IntMap (AgentCont m e o, o), [QueueItem e]))
-processEvent as (QueueItem receiver (Event e) evtTime)
+                        (Maybe (Map.IntMap (AgentMSF m e o, o), [QueueItem e]))
+processEvent as (QueueItem e receiver evtTime)
   | isNothing aMay = return Nothing
   | otherwise = do
     let aReaderTime   = unMSF a e
@@ -270,7 +268,7 @@ runEventSIR ss cor inf ild maxEvents tLimit g
 aggregateAgentMap :: SIRAgentMap g -> (Int, Int, Int) 
 aggregateAgentMap = Prelude.foldr aggregateAgentMapAux (0,0,0)
   where
-    aggregateAgentMapAux :: (AgentCont (SIRMonad g) SIREvent SIRState, SIRState)
+    aggregateAgentMapAux :: (AgentMSF (SIRMonad g) SIREvent SIRState, SIRState)
                          -> (Int, Int, Int) 
                          -> (Int, Int, Int) 
     aggregateAgentMapAux (_, Susceptible) (s,i,r) = (s+1,i,r)

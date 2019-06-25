@@ -123,7 +123,7 @@ sirInvariants n aos = timeInc && aConst && susDec && recInc && infInv
     (ss, _, rs) = unzip3 sirs
 
     -- 1. time is monotonic increasing
-    timeInc = mono (<=) ts
+    timeInc = allPairs (<=) ts
     -- 2. number of agents N stays constant in each step
     aConst = all agentCountInv sirs
     -- 3. number of susceptible S is monotonic decreasing

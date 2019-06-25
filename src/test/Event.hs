@@ -80,7 +80,7 @@ prop_susceptible_invariants
                             -> Bool
     checkInfectedInvariants sender 
         -- expect exactly one Recovery event
-        [QueueItem receiver (Event Recover) t'] 
+        [QueueItem Recover receiver t'] 
       -- receiver is sender (self) and scheduled into the future
       = sender == receiver && t' >= t 
     -- all other cases are invalid
@@ -102,12 +102,12 @@ prop_susceptible_invariants
                                       -> (Bool, Bool, Int)
                                       -> (Bool, Bool, Int)
         checkMakeContactInvariantsAux 
-            (QueueItem receiver (Event (Contact sender' Susceptible)) t') (b, mkb, n)
+            (QueueItem (Contact sender' Susceptible) receiver t') (b, mkb, n)
           = (b && sender == sender'    -- the sender in Contact must be the Susceptible agent
                && receiver `elem` ais  -- the receiver of Contact must be in the agent ids
                && t == t', mkb, n+1)   -- the Contact event is scheduled immediately
         checkMakeContactInvariantsAux 
-            (QueueItem receiver (Event MakeContact) t') (b, mkb, n) 
+            (QueueItem MakeContact receiver t') (b, mkb, n) 
           = (b && receiver == sender   -- the receiver of MakeContact is the Susceptible agent itself
                && t' == t + 1.0        -- the MakeContact event is scheduled 1 time-unit into the future
                &&  not mkb, True, n)   -- there can only be one MakeContact event
@@ -205,7 +205,7 @@ prop_infected_duration = checkCoverage $ do
       return (ao, recoveryTime es)
       where
         recoveryTime :: [QueueItem SIREvent] -> Double
-        recoveryTime [QueueItem _ (Event Recover) t]  = t
+        recoveryTime [QueueItem Recover _ t]  = t
         recoveryTime _ = 0
 
 -- NOTE: this specification implicitly covers that an infected agent never 
@@ -241,7 +241,7 @@ prop_infected_invariants (Positive t) (NonEmpty ais) = property $ do
                            -> Bool
     checkContactInvariants ai sender 
         -- expect exactly one Contact * Infected event
-        [QueueItem receiver (Event (Contact ai' Infected)) t'] 
+        [QueueItem (Contact ai' Infected) receiver t'] 
       = sender == receiver && -- receiver is the sender of the initial Contact event
         ai     == ai'      && -- agent id in Contact is the Infected agent
         t'     == t           -- scheduled immediately

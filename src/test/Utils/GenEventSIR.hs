@@ -58,7 +58,7 @@ genQueueItem t ais = do
 
   let evtTime = t + dt
 
-  return $ QueueItem receiver (Event e) evtTime
+  return $ QueueItem e receiver evtTime
 
 eventTime :: QueueItem e -> Time
 eventTime (QueueItem _ _ et) = et

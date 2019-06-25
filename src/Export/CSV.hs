@@ -14,8 +14,7 @@ writeCSVFile fileName xs = do
 
 sirDynamicToString :: (Double, (Double, Double, Double)) -> String
 sirDynamicToString (t, (s, i, r)) =
-  printf "%.4f" t ++
-  "," ++ printf "%.4f" s ++
-  "," ++ printf "%.4f" i ++ 
-  "," ++ printf "%.4f" r ++
-  ";"
+  printf "%.2f" t ++
+  "," ++ printf "%.2f" s ++
+  "," ++ printf "%.2f" i ++ 
+  "," ++ printf "%.2f" r

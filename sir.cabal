@@ -178,6 +178,7 @@ Test-Suite sir-time-tests
                       , Utils.Stats
                       , SIR.Time
                       , SIR.Model
+                      , Export.Compress
 
   hs-source-dirs:       src/
                       , src/test
@@ -213,6 +214,7 @@ Test-Suite sir-model-tests
                       , SIR.Model
                       , SIR.SD
                       , SIR.Time
+                      , Export.Compress
 
   hs-source-dirs:       src/
                       , src/test/
@@ -253,6 +255,7 @@ Test-Suite sir-invariants-tests
                       , Utils.GenSIR
                       , Utils.Numeric
                       , Utils.Stats
+                      , Export.Compress
 
   hs-source-dirs:       src/
                       , src/test
