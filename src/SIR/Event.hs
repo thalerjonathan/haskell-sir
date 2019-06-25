@@ -303,19 +303,19 @@ initSIR ss cor inf ild = do
 --------------------------------------------------------------------------------
 -- RANDOM UTILS
 --------------------------------------------------------------------------------
-randomElem :: RandomGen g => [e] -> Rand g e
+randomElem :: MonadRandom m => [e] -> m e
 randomElem es = do
   let len = length es
   idx <- getRandomR (0, len - 1)
   return $ es !! idx
 
-randomBoolM :: RandomGen g => Double -> Rand g Bool
+randomBoolM :: MonadRandom m => Double -> m Bool
 randomBoolM p = getRandomR (0, 1) >>= (\r -> return $ r <= p)
 
-randomExpM :: RandomGen g => Double -> Rand g Double
+randomExpM :: MonadRandom m => Double -> m Double
 randomExpM lambda = avoid 0 >>= (\r -> return ((-log r) / lambda))
   where
-    avoid :: (Random a, Eq a, RandomGen g) => a -> Rand g a
+    avoid :: (Random a, Eq a, MonadRandom m) => a -> m a
     avoid x = do
       r <- getRandom
       if r == x
