@@ -146,11 +146,11 @@ genEventSIRRepls n as cor inf ild maxEvents tMax
 --------------------------------------------------------------------------------
 runAgent :: RandomGen g
          => g
-         -> SIRAgentCont g
+         -> SIRAgentMSF g
          -> SIREvent
          -> Time
          -> [AgentId]
-         -> (g, SIRAgentCont g, SIRState, [QueueItem SIREvent])
+         -> (g, SIRAgentMSF g, SIRState, [QueueItem SIREvent])
 runAgent g a e t ais  = (g', a', ao, es)
   where
     aMsf       = unMSF a e

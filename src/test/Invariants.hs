@@ -29,14 +29,27 @@ main :: IO ()
 main = do
   let t = testGroup "SIR Invariant Tests" 
           [ 
-            QC.testProperty "SIR SD invariant" prop_sir_sd_invariants
-          , QC.testProperty "SIR event-driven invariant" prop_sir_event_invariants
-          , QC.testProperty "SIR event-driven random event sampling invariant" prop_sir_random_invariants
-          , QC.testProperty "SIR time-driven invariant" prop_sir_time_invariants
-          , QC.testProperty "SIR time- and event-driven distribution" prop_sir_event_time_equal
+            QC.testProperty "Addition Commute" prop_ass_float_pos
+          --  QC.testProperty "SIR SD invariant" prop_sir_sd_invariants
+          --  QC.testProperty "SIR event-driven invariant" prop_sir_event_invariants
+          --, QC.testProperty "SIR event-driven random event sampling invariant" prop_sir_random_invariants
+          --, QC.testProperty "SIR time-driven invariant" prop_sir_time_invariants
+          --, QC.testProperty "SIR time- and event-driven distribution" prop_sir_event_time_equal
           ]
 
   defaultMain t
+
+prop_ass_dbl :: Double -> Double -> Double -> Bool
+prop_ass_dbl x y z = (x + y) + z == x + (y + z)
+
+prop_ass_float_pos :: Positive Float -> Positive Float -> Positive Float -> Bool
+prop_ass_float_pos (Positive x) (Positive y) (Positive z) = (x + y) + z == x + (y + z)
+
+prop_ass_float :: Float -> Float -> Float -> Bool
+prop_ass_float x y z = (x + y) + z == x + (y + z)
+
+prop_ass_int :: Int -> Int -> Int -> Bool
+prop_ass_int x y z = (x + y) + z == x + (y + z)
 
 --------------------------------------------------------------------------------
 -- SIMULATION INVARIANTS
@@ -46,7 +59,7 @@ prop_sir_event_invariants :: Positive Int    -- ^ beta, contact rate
                           -> Positive Double -- ^ delta, illness duration
                           -> [SIRState]      -- ^ population
                           -> Property
-prop_sir_event_invariants (Positive cor) (P inf) (Positive ild) as = checkCoverage $ do
+prop_sir_event_invariants (Positive cor) (P inf) (Positive ild) as = property $ do
   -- total agent count
   let n = length as
 
@@ -139,12 +152,6 @@ sirInvariants n aos = timeInc && aConst && susDec && recInc && infInv
     infectedInv :: (Int, Int, Int) -> Bool
     infectedInv (s,i,r) = i == n - (s + r)
 
-    allPairs :: (Ord a, Num a) => (a -> a -> Bool) -> [a] -> Bool
-    allPairs f xs = all (uncurry f) (pairs xs)
-
-    pairs :: [a] -> [(a,a)]
-    pairs xs = zip xs (tail xs)
-
 -- NOTE: invariants under floating-point are much more difficult to get right
 -- because we are comparing floating point values which are evil anyway.
 -- We removed infected invariant due to subtraction operation which f*** up
@@ -158,22 +165,16 @@ sirInvariantsFloating n aos = timeInc && aConst && susDec && recInc
     (ss, _, rs) = unzip3 sirs
 
     -- 1. time is monotonic increasing
-    timeInc = mono (<=) ts
+    timeInc = allPairs (<=) ts
     -- 2. number of agents N stays constant in each step
     aConst = all agentCountInv sirs
     -- 3. number of susceptible S is monotonic decreasing
-    susDec = mono (>=) ss
+    susDec = allPairs (>=) ss
     -- 4. number of recovered R is monotonic increasing
-    recInc = mono (<=) rs
+    recInc = allPairs (<=) rs
 
     agentCountInv :: (Double, Double, Double) -> Bool
     agentCountInv (s,i,r) = compareDouble n (s + i + r) epsilon
-    
-    mono :: (Ord a, Num a) => (a -> a -> Bool) -> [a] -> Bool
-    mono f xs = all (uncurry f) (pairs xs)
-
-    pairs :: [a] -> [(a,a)]
-    pairs xs = zip xs (tail xs)
 
 -- NOTE: need to use mann whitney because both produce bi-modal distributions
 -- thus t-test does not work because it assumes normally distributed samples
@@ -259,3 +260,9 @@ genRandomEventSIR as cor inf ild maxEvents = do
 --------------------------------------------------------------------------------
 snd3 :: (a,b,c) -> b
 snd3 (_,b,_) = b
+
+allPairs :: (Ord a, Num a) => (a -> a -> Bool) -> [a] -> Bool
+allPairs f xs = all (uncurry f) (pairs xs)
+
+pairs :: [a] -> [(a,a)]
+pairs xs = zip xs (tail xs)
