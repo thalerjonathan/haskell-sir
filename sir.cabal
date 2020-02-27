@@ -250,8 +250,10 @@ Test-Suite sir-invariants-tests
                       , SIR.Model
                       , SIR.SD
                       , SIR.Time
+                      , SIR.TimeCorrelated
                       , Utils.GenEventSIR
                       , Utils.GenTimeSIR
+                      , Utils.GenTimeCorrSIR
                       , Utils.GenSIR
                       , Utils.Numeric
                       , Utils.Stats
