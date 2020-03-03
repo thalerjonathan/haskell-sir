@@ -14,6 +14,21 @@ main = do
   let g   = mkStdGen seed
   --g <- getStdGen
 
+  let range = (12,100) :: (Int, Int)
+
+  let (r, g') = randomR range g
+
+  print r
+  print $ randomR range g
+  print $ randomR range g
+
+  print $ randomR range g'
+
+  let (g2, g3) = split g'
+
+  print $ randomR range g2
+  print $ randomR range g3
+
   let ctx = defaultSIRCtx g
       ret = runTimeSIR ctx
 

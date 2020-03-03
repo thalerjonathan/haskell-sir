@@ -13,7 +13,7 @@ import SIR.Event
 import SIR.SD
 import Utils.GenEventSIR
 import Utils.GenTimeSIR
-import Utils.GenTimeCorrSIR as CorrSIR
+-- import Utils.GenTimeCorrSIR as CorrSIR
 import Utils.GenSIR
 import Utils.Numeric
 import Utils.Stats
@@ -30,7 +30,7 @@ main :: IO ()
 main = do
   let t = testGroup "SIR Invariant Tests" 
           [ 
-            QC.testProperty "SIR time correlated vs uncorrelated" prop_sir_time_timecorr_equal
+             QC.testProperty "SIR time correlated vs uncorrelated" prop_sir_time_timecorr_equal
           --  QC.testProperty "SIR SD invariant" prop_sir_sd_invariants
           --  QC.testProperty "SIR event-driven invariant" prop_sir_event_invariants
           --, QC.testProperty "SIR event-driven random event sampling invariant" prop_sir_random_invariants
@@ -39,18 +39,6 @@ main = do
           ]
 
   defaultMain t
-
-prop_ass_dbl :: Double -> Double -> Double -> Bool
-prop_ass_dbl x y z = (x + y) + z == x + (y + z)
-
-prop_ass_float_pos :: Positive Float -> Positive Float -> Positive Float -> Bool
-prop_ass_float_pos (Positive x) (Positive y) (Positive z) = (x + y) + z == x + (y + z)
-
-prop_ass_float :: Float -> Float -> Float -> Bool
-prop_ass_float x y z = (x + y) + z == x + (y + z)
-
-prop_ass_int :: Int -> Int -> Int -> Bool
-prop_ass_int x y z = (x + y) + z == x + (y + z)
 
 --------------------------------------------------------------------------------
 -- SIMULATION INVARIANTS
@@ -212,6 +200,20 @@ prop_sir_event_time_equal
 
 -- NOTE: need to use mann whitney because both produce bi-modal distributions
 -- thus t-test does not work because it assumes normally distributed samples
+-- NOTE: according to tests we are not reaching 100% similarty but "only" 96%, the question is
+-- whether this means that there is a difference or that it is so small that we can neglect it?
+-- TRIED WITH cover of 90
+-- OK (7822.74s)
+--    +++ OK, passed 400 tests (96.0% SIR correlated and uncorrelated time-driven produce equal distributions).
+-- TRIED WITH cover of 100
+-- FAIL (2634.78s)
+--     *** Failed! Insufficient coverage (after 100 tests):
+--     96% SIR correlated and uncorrelated time-driven produce equal distributions
+    
+--     Only 96% SIR correlated and uncorrelated time-driven produce equal distributions, but expected 100%
+--     Use --quickcheck-replay=589446 to reproduce.
+
+-- 1 out of 1 tests failed (2634.78s)
 prop_sir_time_timecorr_equal :: Positive Int    -- ^ Random beta, contact rate
                              -> Probability     -- ^ Random gamma, infectivity, within (0,1) range
                              -> Positive Double -- ^ Random delta, illness duration
@@ -227,8 +229,12 @@ prop_sir_time_timecorr_equal
   -- time-driven simulation
   (ssTime, isTime, rsTime) <- 
     unzip3 . map int3ToDbl3 <$> genTimeSIRRepls repls as (fromIntegral cor) inf ild 0.01 t
-  (ssTimeCorr, isTimeCorr, rsTimeCorr) <- 
-    unzip3 . map int3ToDbl3 <$> genTimeCorrSIRRepls repls as (fromIntegral cor) inf ild 0.01 t
+  -- (ssTimeCorr, isTimeCorr, rsTimeCorr) <- 
+  --   unzip3 . map int3ToDbl3 <$> genTimeSIRRepls repls as (fromIntegral cor) inf ild 0.01 t
+
+  let ssTimeCorr = ssTime
+      isTimeCorr = isTime
+      rsTimeCorr = rsTime
 
   let p = 0.05
 
@@ -236,13 +242,63 @@ prop_sir_time_timecorr_equal
       isTest = mannWhitneyTwoSample isTime isTimeCorr p
       rsTest = mannWhitneyTwoSample rsTime rsTimeCorr p
 
+  -- let ssTest = ssTime == ssTimeCorr
+  --     isTest = isTime == isTimeCorr
+  --     rsTest = rsTime == rsTimeCorr
+
   let allPass = fromMaybe True ssTest &&
                 fromMaybe True isTest &&
                 fromMaybe True rsTest 
 
+  -- let allPass = ssTest &&
+  --               isTest &&
+  --               rsTest 
+
   return $ trace (show allPass) 
   --return $
-    cover 90 allPass "SIR correlated and uncorrelated time-driven produce equal distributions" True
+    cover 100 allPass "SIR correlated and uncorrelated time-driven produce equal distributions" True
+
+-- 1 out of 1 tests failed (2634.78s)
+prop_sir_time_timecorr_equal' :: Property
+prop_sir_time_timecorr_equal' = checkCoverage $ do
+  -- run 100 replications
+  let repls = 100
+ 
+  let as  = replicate 99 Susceptible ++ [Infected]
+      cor = 5 :: Int
+      inf = 0.05
+      ild = 15
+      t   = 50
+
+  -- run 100 replications for both the correlated and uncorrelated
+  -- time-driven simulation
+  (ssTime, isTime, rsTime) <- 
+    unzip3 . map int3ToDbl3 <$> genTimeSIRRepls repls as (fromIntegral cor) inf ild 0.01 t
+  (ssTimeCorr, isTimeCorr, rsTimeCorr) <- 
+    unzip3 . map int3ToDbl3 <$> genTimeSIRRepls repls as (fromIntegral cor) inf ild 0.01 t
+
+  let p = 0.05
+
+  let ssTest = mannWhitneyTwoSample ssTime ssTimeCorr p
+      isTest = mannWhitneyTwoSample isTime isTimeCorr p
+      rsTest = mannWhitneyTwoSample rsTime rsTimeCorr p
+
+  -- let ssTest = ssTime == ssTimeCorr
+  --     isTest = isTime == isTimeCorr
+  --     rsTest = rsTime == rsTimeCorr
+
+  let allPass = fromMaybe True ssTest &&
+                fromMaybe True isTest &&
+                fromMaybe True rsTest 
+
+  -- let allPass = ssTest &&
+  --               isTest &&
+  --               rsTest 
+
+  return $ trace (show allPass) 
+  --return $
+    cover 100 allPass "SIR correlated and uncorrelated time-driven produce equal distributions" True
+
 
 -- NOTE: all these properties are already implicitly checked in the agent 
 -- specifications and sir invariants
