@@ -1,0 +1,6 @@
+{
+    "languageServerHaskell.useCustomHieWrapper": true,
+    "languageServerHaskell.useCustomHieWrapperPath": "hie-wrapper",
+    "languageServerHaskell.hlintOn": true,
+    "languageServerHaskell.maxNumberOfProblems": 100
+}
