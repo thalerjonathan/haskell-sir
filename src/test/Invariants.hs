@@ -13,7 +13,7 @@ import SIR.Event
 import SIR.SD
 import Utils.GenEventSIR
 import Utils.GenTimeSIR
--- import Utils.GenTimeCorrSIR as CorrSIR
+import Utils.GenTimeCorrSIR as CorrSIR
 import Utils.GenSIR
 import Utils.Numeric
 import Utils.Stats
@@ -202,6 +202,7 @@ prop_sir_event_time_equal
 -- thus t-test does not work because it assumes normally distributed samples
 -- NOTE: according to tests we are not reaching 100% similarty but "only" 96%, the question is
 -- whether this means that there is a difference or that it is so small that we can neglect it?
+
 -- TRIED WITH cover of 90
 -- OK (7822.74s)
 --    +++ OK, passed 400 tests (96.0% SIR correlated and uncorrelated time-driven produce equal distributions).
@@ -212,6 +213,23 @@ prop_sir_event_time_equal
     
 --     Only 96% SIR correlated and uncorrelated time-driven produce equal distributions, but expected 100%
 --     Use --quickcheck-replay=589446 to reproduce.
+
+-- CHECKED ALSO AGAINST A COMPARISON OF UNCORRELATED WITH ITSELF (but using 2 different initial RNGs)
+-- FAIL (2174.63s)
+--     *** Failed! Insufficient coverage (after 100 tests):
+--     97% SIR correlated and uncorrelated time-driven produce equal distributions
+    
+--     Only 97% SIR correlated and uncorrelated time-driven produce equal distributions, but expected 100%
+--     Use --quickcheck-replay=232632 to reproduce.
+
+-- CHECKED ALSO AGAINST A COMPARISON OF CORRELATED WITH ITSELF (but using 2 different initial RNGs)
+-- FAIL (1644.38s)
+--     *** Failed! Insufficient coverage (after 100 tests):
+--     96% SIR correlated and uncorrelated time-driven produce equal distributions
+    
+--     Only 96% SIR correlated and uncorrelated time-driven produce equal distributions, but expected 100%
+--     Use --quickcheck-replay=395489 to reproduce.
+
 
 -- 1 out of 1 tests failed (2634.78s)
 prop_sir_time_timecorr_equal :: Positive Int    -- ^ Random beta, contact rate
@@ -229,12 +247,12 @@ prop_sir_time_timecorr_equal
   -- time-driven simulation
   (ssTime, isTime, rsTime) <- 
     unzip3 . map int3ToDbl3 <$> genTimeSIRRepls repls as (fromIntegral cor) inf ild 0.01 t
-  -- (ssTimeCorr, isTimeCorr, rsTimeCorr) <- 
-  --   unzip3 . map int3ToDbl3 <$> genTimeSIRRepls repls as (fromIntegral cor) inf ild 0.01 t
+  (ssTimeCorr, isTimeCorr, rsTimeCorr) <- 
+    unzip3 . map int3ToDbl3 <$> CorrSIR.genTimeCorrSIRRepls repls as (fromIntegral cor) inf ild 0.01 t
 
-  let ssTimeCorr = ssTime
-      isTimeCorr = isTime
-      rsTimeCorr = rsTime
+  -- let ssTimeCorr = ssTime
+  --     isTimeCorr = isTime
+  --     rsTimeCorr = rsTime
 
   let p = 0.05
 
